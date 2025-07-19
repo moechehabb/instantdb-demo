@@ -61,7 +61,7 @@ export default function TriviaGame() {
 
   // Initialize query with empty data first
   const [queryState, setQueryState] = useState<{
-    data: { categories?: any[]; questions?: any[]; leaderboard?: any[] } | null;
+    data: { categories?: Category[]; questions?: Question[]; leaderboard?: PlayerScore[] } | null;
     isLoading: boolean;
     error: Error | null;
   }>({ data: {
@@ -221,19 +221,29 @@ export default function TriviaGame() {
 
   // Update queryState when query data changes
   useEffect(() => {
-    if (query.data) {
-      
+    if (query.data && query.data.leaderboard) {
+      // Ensure each item in leaderboard matches PlayerScore type
+      const leaderboardData = query.data.leaderboard.map(item => ({
+        id: item.id,
+        playerName: item.playerName || 'Anonymous',
+        score: Number(item.score) || 0,
+        category: item.category || 'General',
+        categoryId: item.categoryId || '',
+        date: item.date || new Date().toISOString().split('T')[0],
+        createdAt: item.createdAt || Date.now()
+      } as PlayerScore));
+  
       setQueryState(prev => ({
         ...prev,
         data: {
           ...(prev.data || {}),
-          leaderboard: query.data.leaderboard || []
+          leaderboard: leaderboardData
         },
         isLoading: query.isLoading,
         error: query.error || null
       }));
     }
-  }, [query.data]);
+  }, [query.data, query.isLoading, query.error]);
   // Handle database errors
   if (dbError || query.error) {
     return (
@@ -291,7 +301,7 @@ export default function TriviaGame() {
     // Convert both IDs to strings for comparison to ensure type consistency
     const categoryId = String(category.id);
     
-    const categoryQuestions = latestQuestions.filter((q: any) => {
+    const categoryQuestions = latestQuestions.filter((q: Question) => {
       const questionCategoryId = String(q.categoryId);
       const match = questionCategoryId === categoryId;
       console.log(`Question ${q.id} has categoryId:`, q.categoryId, 'Type:', typeof q.categoryId, 'Match:', match);
